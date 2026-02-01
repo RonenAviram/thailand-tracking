@@ -1,6 +1,6 @@
 import React from 'react';
-import Dashboard from './components/Dashboard'; // וודא שהקובץ Dashboard.tsx נמצא בתוך תיקיית components
-import './App.css';
+import Dashboard from './Dashboard'; // הורדנו את המילה components כי הקובץ נמצא בחוץ
+import './index.css';
 
 function App() {
   return (
