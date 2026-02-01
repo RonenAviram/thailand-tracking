@@ -1,169 +1,84 @@
 import React, { useEffect, useState } from 'react';
 import Papa from 'papaparse';
 
-interface TravelData {
-  timestamp: string;
-  location: string;
-  funIndex: number;
-  moanIndex: number;
-  shakes: number;
-  massage: string;
-  funny: string;
-  weird: string;
-  dailyImage: string;
-}
-
-const Dashboard: React.FC = () => {
-  const [data, setData] = useState<TravelData | null>(null);
+const Dashboard = () => {
+  const [data, setData] = useState<any>(null);
   const [totalShakes, setTotalShakes] = useState(0);
 
-  // הקישור המעודכן והסופי שלך
+  // הקישור הישיר ל-CSV שלך
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTWIO-PFUSmBMbPAJ4mLvzCx8f6xy_Qqiy890CUKtd1CArENuFdKxryHP2G0q_Rx97u8nb59TdSFfCT/pub?output=csv';
-
-  // פונקציה להצגת תמונה מקישור של גוגל דרייב
-  const formatDriveUrl = (url: string) => {
-    if (!url || !url.includes('id=')) return url;
-    const id = url.split('id=')[1]?.split('&')[0];
-    return `https://drive.google.com/uc?export=view&id=${id}`;
-  };
 
   useEffect(() => {
     const fetchData = () => {
-      Papa.parse(CSV_URL, {
+      // הוספת Timestamp כדי למנוע נתונים ישנים (Cache Bursting)
+      const urlWithCacheBuster = `${CSV_URL}&t=${new Date().getTime()}`;
+      
+      Papa.parse(urlWithCacheBuster, {
         download: true,
         header: true,
-        skipEmptyLines: true,
         complete: (results) => {
-          const rawData = results.data as any[];
-          // סינון שורות ריקות
-          const cleanData = rawData.filter(row => row['חותמת זמן'] || row['Timestamp']);
-          
-          if (cleanData.length > 0) {
-            const latest = cleanData[cleanData.length - 1];
+          const rows = results.data.filter((r: any) => r['חותמת זמן']);
+          if (rows.length > 0) {
+            const latest = rows[rows.length - 1];
+            setData(latest);
             
-            setData({
-              timestamp: latest['חותמת זמן'] || latest['Timestamp'],
-              location: latest['איפה אנחנו'] || 'בתאילנד',
-              funIndex: parseInt(latest['מדד ה-FUN']) || 0,
-              moanIndex: parseInt(latest['מדד הקיטורים היומי']) || 0,
-              shakes: parseInt(latest['כמה שייקים שתינו היום']) || 0,
-              massage: latest['מי עשו היום מסאז\'?'] || 'אף אחד',
-              funny: latest['הדבר הכי מצחיק שקרה היום'] || '',
-              weird: latest['הדבר הכי מוזר שראינו היום'] || '',
-              dailyImage: formatDriveUrl(latest['התמונה היומית'] || '')
-            });
-
-            const total = cleanData.reduce((acc, curr) => 
+            // חישוב שייקים
+            const total = rows.reduce((acc: number, curr: any) => 
               acc + (parseInt(curr['כמה שייקים שתינו היום']) || 0), 0);
             setTotalShakes(total);
           }
-        },
+        }
       });
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // רענון כל 30 שניות
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!data) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
-      <div className="text-center animate-bounce">
-        <span className="text-4xl">🥥</span>
-        <p className="mt-4 text-slate-500 font-bold">טוען נתונים ממשפחת אבירם...</p>
-      </div>
-    </div>
-  );
+  if (!data) return <div style={{textAlign: 'center', padding: '50px', fontFamily: 'sans-serif'}}>טוען נתונים... 🌴</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-right" dir="rtl">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div style={{direction: 'rtl', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto', padding: '20px', backgroundColor: '#f0f9ff', minHeight: '100vh'}}>
+      <h1 style={{textAlign: 'center', color: '#0c4a6e'}}>תאילנד 2026 🇹🇭</h1>
+      <p style={{textAlign: 'center', fontWeight: 'bold', color: '#0284c7'}}>📍 {data['איפה אנחנו']}</p>
+
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '20px'}}>
+        <div style={{background: 'white', padding: '20px', borderRadius: '20px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'}}>
+          <div style={{fontSize: '12px', color: '#94a3b8'}}>שייקים היום</div>
+          <div style={{fontSize: '40px', fontWeight: 'bold', color: '#f97316'}}>{data['כמה שייקים שתינו היום'] || 0}</div>
+          <div style={{fontSize: '10px', color: '#94a3b8'}}>סה"כ: {totalShakes}</div>
+        </div>
         
-        {/* כותרת */}
-        <header className="text-center space-y-2">
-          <h1 className="text-4xl font-black text-slate-900 leading-tight">המסע לתאילנד 2026 🌴</h1>
-          <div className="inline-block bg-sky-500 text-white px-6 py-1 rounded-full font-bold shadow-lg">
-            📍 {data.location}
-          </div>
-        </header>
-
-        {/* התמונה היומית */}
-        {data.dailyImage && (
-          <div className="bg-white p-2 rounded-[2.5rem] shadow-2xl border-4 border-white overflow-hidden group">
-            <div className="relative">
-              <img 
-                src={data.dailyImage} 
-                alt="התמונה היומית" 
-                className="w-full h-80 object-cover rounded-[1.8rem]"
-                onError={(e) => e.currentTarget.style.display = 'none'}
-              />
-              <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg">
-                התמונה היומית 📸
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* שייקים */}
-          <div className="bg-white p-6 rounded-[2rem] shadow-xl text-center border-b-8 border-orange-400">
-            <span className="text-slate-400 font-bold text-[10px] block mb-1 uppercase">שייקים היום 🥥</span>
-            <div className="text-5xl font-black text-orange-500">{data.shakes}</div>
-            <div className="text-slate-400 text-[10px] mt-1">סה"כ: <span className="text-orange-600 font-bold">{totalShakes}</span></div>
-          </div>
-
-          {/* מסאז' */}
-          <div className="bg-emerald-500 p-6 rounded-[2rem] shadow-xl text-white text-center flex flex-col justify-center overflow-hidden">
-            <span className="text-emerald-100 font-bold text-[10px] block mb-1 uppercase">מסאז' יומי 💆‍♂️</span>
-            <div className="text-xl font-bold truncate">{data.massage}</div>
-          </div>
+        <div style={{background: '#10b981', padding: '20px', borderRadius: '20px', textAlign: 'center', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'}}>
+          <div style={{fontSize: '12px', opacity: 0.8}}>מסאז' יומי</div>
+          <div style={{fontSize: '18px', fontWeight: 'bold', marginTop: '10px'}}>{data['מי עשו היום מסאז\'?'] || 'אף אחד'}</div>
         </div>
-
-        {/* מדדים */}
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl space-y-5">
-          <div>
-            <div className="flex justify-between items-center mb-2 font-bold text-sm">
-              <span className="text-slate-500">מדד ה-FUN 🥳</span>
-              <span className="text-green-500 text-lg">{data.funIndex}/10</span>
-            </div>
-            <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden border border-slate-50">
-              <div className="bg-green-500 h-full transition-all duration-1000" style={{width: `${data.funIndex * 10}%`}}></div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2 font-bold text-sm">
-              <span className="text-slate-500">מדד הקיטורים 😫</span>
-              <span className="text-red-500 text-lg">{data.moanIndex}/10</span>
-            </div>
-            <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden border border-slate-50">
-              <div className="bg-red-500 h-full transition-all duration-1000" style={{width: `${data.moanIndex * 10}%`}}></div>
-            </div>
-          </div>
-        </div>
-
-        {/* פנינים וחוכמות */}
-        {(data.funny || data.weird) && (
-          <div className="bg-slate-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden text-white">
-            <div className="relative z-10 space-y-4">
-              {data.funny && (
-                <div className="border-r-4 border-yellow-400 pr-4 italic text-xl leading-relaxed">
-                  "{data.funny}"
-                </div>
-              )}
-              {data.weird && (
-                <div className="text-sky-300 text-sm font-medium pr-4">
-                  👀 משהו מוזר שראינו: {data.weird}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
       </div>
-      <footer className="text-center mt-12 text-slate-300 text-[10px] uppercase tracking-widest">
-        Family Journey Tracker • Built for Neria & Ronen
-      </footer>
+
+      <div style={{background: 'white', padding: '20px', borderRadius: '20px', marginTop: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
+          <span style={{fontSize: '14px', fontWeight: 'bold'}}>מדד ה-FUN 🥳</span>
+          <span style={{color: '#22c55e', fontWeight: 'bold'}}>{data['מדד ה-FUN']}/10</span>
+        </div>
+        <div style={{background: '#f1f5f9', height: '10px', borderRadius: '5px'}}>
+          <div style={{background: '#22c55e', height: '100%', borderRadius: '5px', width: `${(data['מדד ה-FUN'] || 0) * 10}%`}}></div>
+        </div>
+
+        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px', marginTop: '15px'}}>
+          <span style={{fontSize: '14px', fontWeight: 'bold'}}>מדד הקיטורים 😫</span>
+          <span style={{color: '#ef4444', fontWeight: 'bold'}}>{data['מדד הקיטורים היומי']}/10</span>
+        </div>
+        <div style={{background: '#f1f5f9', height: '10px', borderRadius: '5px'}}>
+          <div style={{background: '#ef4444', height: '100%', borderRadius: '5px', width: `${(data['מדד הקיטורים היומי'] || 0) * 10}%`}}></div>
+        </div>
+      </div>
+
+      {(data['הדבר הכי מצחיק שקרה היום'] || data['הדבר הכי מוזר שראינו היום']) && (
+        <div style={{background: '#0f172a', color: 'white', padding: '20px', borderRadius: '20px', marginTop: '15px', fontStyle: 'italic'}}>
+          {data['הדבר הכי מצחיק שקרה היום'] && <p>"{data['הדבר הכי מצחיק שקרה היום']}"</p>}
+        </div>
+      )}
     </div>
   );
 };
