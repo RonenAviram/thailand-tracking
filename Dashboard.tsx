@@ -10,6 +10,7 @@ interface TravelData {
   massage: string;
   funny: string;
   weird: string;
+  dailyImage: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -17,6 +18,13 @@ const Dashboard: React.FC = () => {
   const [totalShakes, setTotalShakes] = useState(0);
 
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTWIO-PFUSmBMbPAJ4mLvzCx8f6xy_Qqiy890CUKtd1CArENuFdKxryHP2G0q_Rx97u8nb59TdSFfCT/pub?output=csv';
+
+  // פונקציה לתיקון לינק של גוגל דרייב לתצוגה ישירה
+  const formatDriveUrl = (url: string) => {
+    if (!url) return '';
+    const id = url.split('id=')[1] || url.split('/d/')[1]?.split('/')[0];
+    return id ? `https://lh3.googleusercontent.com/u/0/d/${id}` : '';
+  };
 
   useEffect(() => {
     const fetchData = () => {
@@ -30,16 +38,16 @@ const Dashboard: React.FC = () => {
           if (cleanData.length > 0) {
             const latest = cleanData[cleanData.length - 1];
             
-            // מיפוי מדויק לפי צילום המסך של הגיליון שלך
             setData({
               timestamp: latest['חותמת זמן'],
               location: latest['איפה אנחנו'] || 'בתאילנד...',
-              funIndex: parseInt(latest['מדד ה-FUN']) || 0, // תיקון לפורמט הגיליון
+              funIndex: parseInt(latest['מדד ה-FUN']) || 0,
               moanIndex: parseInt(latest['מדד הקיטורים היומי']) || 0,
               shakes: parseInt(latest['כמה שייקים שתינו היום']) || 0,
               massage: latest['מי עשו היום מסאז\'?'] || 'אף אחד',
               funny: latest['הדבר הכי מצחיק שקרה היום'] || '',
-              weird: latest['הדבר הכי מוזר שראינו היום'] || ''
+              weird: latest['הדבר הכי מוזר שראינו היום'] || '',
+              dailyImage: formatDriveUrl(latest['התמונה היומית'] || '')
             });
 
             const total = cleanData.reduce((acc, curr) => acc + (parseInt(curr['כמה שייקים שתינו היום']) || 0), 0);
@@ -50,85 +58,98 @@ const Dashboard: React.FC = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // רענון כל 30 שניות
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!data) return <div className="text-center p-20 font-sans">מעדכן נתונים מצ'יאנג מאי... 🥥</div>;
+  if (!data) return <div className="text-center p-20 font-sans">מעדכן נתונים... 🥥</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans" dir="rtl">
       <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* כותרת ומיקום */}
+        {/* כותרת */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-black text-slate-900">המסע לתאילנד 2026</h1>
-          <div className="inline-block bg-sky-500 text-white px-6 py-2 rounded-full font-bold shadow-lg">
+          <h1 className="text-4xl font-black text-slate-900 leading-tight">המסע של משפחת אבירם</h1>
+          <div className="inline-block bg-sky-500 text-white px-6 py-2 rounded-full font-bold shadow-md">
             📍 {data.location}
           </div>
         </div>
 
-        {/* שייקים */}
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl text-center border-b-8 border-orange-400">
-          <h2 className="text-slate-400 font-bold uppercase tracking-widest text-sm mb-2">שייקים היום</h2>
-          <div className="text-7xl font-black text-orange-500 mb-2">{data.shakes}</div>
-          <div className="text-slate-400 font-medium">סה"כ בטיול: <span className="text-orange-600 font-bold">{totalShakes}</span></div>
-        </div>
+        {/* התמונה היומית - החלק החדש! */}
+        {data.dailyImage && (
+          <div className="bg-white p-3 rounded-[2.5rem] shadow-xl overflow-hidden border-4 border-white">
+             <div className="relative group">
+                <img 
+                  src={data.dailyImage} 
+                  alt="התמונה היומית" 
+                  className="w-full h-80 object-cover rounded-[2rem]"
+                />
+                <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                  התמונה היומית 📸
+                </div>
+             </div>
+          </div>
+        )}
 
-        {/* מדדים זוגיים */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* פאן */}
-          <div className="bg-white p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
-            <div className="flex justify-between items-end mb-4">
-              <span className="text-3xl">🥳</span>
-              <div className="text-right">
-                <div className="text-slate-400 text-xs font-bold">מדד ה-FUN</div>
-                <div className="text-3xl font-black text-green-500">{data.funIndex}/10</div>
-              </div>
+            {/* שייקים */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl text-center border-b-8 border-orange-400">
+                <h2 className="text-slate-400 font-bold text-sm mb-2">שייקים היום 🥥</h2>
+                <div className="text-7xl font-black text-orange-500 mb-2">{data.shakes}</div>
+                <div className="text-slate-400 text-sm">סה"כ בטיול: <span className="text-orange-600 font-bold">{totalShakes}</span></div>
             </div>
-            <div className="w-full bg-slate-100 h-4 rounded-full">
-              <div className="bg-green-500 h-4 rounded-full transition-all duration-1000" style={{width: `${data.funIndex * 10}%`}}></div>
-            </div>
-          </div>
 
-          {/* קיטורים */}
-          <div className="bg-white p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
-            <div className="flex justify-between items-end mb-4">
-              <span className="text-3xl">😫</span>
-              <div className="text-right">
-                <div className="text-slate-400 text-xs font-bold">מדד הקיטורים</div>
-                <div className="text-3xl font-black text-red-500">{data.moanIndex}/10</div>
-              </div>
+            {/* מסאז' */}
+            <div className="bg-emerald-500 p-8 rounded-[2.5rem] shadow-xl text-white flex flex-col justify-center text-center">
+                <h2 className="text-emerald-100 font-bold text-sm mb-2 italic">מי עשו היום מסאז'? 💆‍♂️</h2>
+                <div className="text-3xl font-black">{data.massage}</div>
             </div>
-            <div className="w-full bg-slate-100 h-4 rounded-full">
-              <div className="bg-red-500 h-4 rounded-full transition-all duration-1000" style={{width: `${data.moanIndex * 10}%`}}></div>
+
+            {/* פאן */}
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-lg">
+                <div className="flex justify-between items-center mb-4">
+                    <span className="text-slate-500 font-bold">מדד ה-FUN 🥳</span>
+                    <span className="text-green-500 font-black text-xl">{data.funIndex}/10</span>
+                </div>
+                <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden">
+                    <div className="bg-green-500 h-full transition-all duration-1000" style={{width: `${data.funIndex * 10}%`}}></div>
+                </div>
             </div>
-          </div>
+
+            {/* קיטורים */}
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-lg">
+                <div className="flex justify-between items-center mb-4">
+                    <span className="text-slate-500 font-bold">מדד הקיטורים 😫</span>
+                    <span className="text-red-500 font-black text-xl">{data.moanIndex}/10</span>
+                </div>
+                <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden">
+                    <div className="bg-red-500 h-full transition-all duration-1000" style={{width: `${data.moanIndex * 10}%`}}></div>
+                </div>
+            </div>
         </div>
 
-        {/* מסאז' וציטוטים */}
-        <div className="bg-emerald-500 p-6 rounded-[2rem] shadow-lg text-white">
-          <div className="text-emerald-100 text-xs font-bold mb-1">מי עשו היום מסאז'? 💆‍♂️</div>
-          <div className="text-2xl font-bold">{data.massage}</div>
-        </div>
-
+        {/* ציטוטים */}
         {(data.funny || data.weird) && (
-          <div className="space-y-4">
-            <h3 className="font-bold text-slate-800 mr-2">עדכונים מהשטח ✨</h3>
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-xl space-y-4">
             {data.funny && (
-              <div className="bg-white p-6 rounded-2xl shadow-md border-r-8 border-yellow-400">
-                <p className="text-slate-800 text-lg italic">"{data.funny}"</p>
+              <div className="border-r-8 border-yellow-400 pr-4">
+                <p className="text-slate-800 text-xl font-medium italic">"{data.funny}"</p>
               </div>
             )}
             {data.weird && (
-              <div className="bg-slate-800 p-6 rounded-2xl shadow-md text-slate-200">
-                <div className="text-sky-400 text-xs font-bold mb-2">ראינו משהו מוזר...</div>
-                <p>{data.weird}</p>
+              <div className="bg-slate-50 p-4 rounded-2xl">
+                <span className="text-xs font-bold text-sky-500 block mb-1 uppercase tracking-tighter">מוזר אבל נכון:</span>
+                <p className="text-slate-600">{data.weird}</p>
               </div>
             )}
           </div>
         )}
+
       </div>
+      <footer className="text-center mt-12 text-slate-300 text-[10px] uppercase tracking-[0.2em]">
+        Family Journey Dashboard • 2026
+      </footer>
     </div>
   );
 };
